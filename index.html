@@ -228,6 +228,71 @@
     #msg5 { position: absolute;color: #CFCFCF;font-size:25px;font-weight: bold;left: 1158px; top: 754px; }
     #add3 { position: absolute;color: black;font-size:25px;font-weight: bold;left: 1410px; top: 704px; }
     #add4 { position: absolute;color: black;font-size:25px;font-weight: bold;left: 1410px; top: 754px; }
+
+    #msgmove1 { position: absolute;color: white;font-size:25px;font-weight: bold;left: 450px; top: 620px; }
+    #msgmove2 { position: absolute;color: black;font-size:25px;font-weight: bold;left: 450px; top: 750px; }
+    #msgattack1 { position: absolute;color: white;font-size:25px;font-weight: bold;left: 600px; top: 620px; }
+    #msgattack2 { position: absolute;color: black;font-size:25px;font-weight: bold;left: 600px; top: 750px; }
+    #msgblock1 { position: absolute;color: white;font-size:25px;font-weight: bold;left: 800px; top: 620px; }
+    #msgblock2 { position: absolute;color: black;font-size:25px;font-weight: bold;left: 800px; top: 750px; }
+    #msgsprint1 { position: absolute;color: white;font-size:25px;font-weight: bold;left: 1000px; top: 620px; }
+    #msgsprint2 { position: absolute;color: black;font-size:25px;font-weight: bold;left: 1000px; top: 750px; }
+    #msgmark1 { position: absolute;color: white;font-size:25px;font-weight: bold;left: 1200px; top: 570px; }
+    #msgmark2 { position: absolute;color: black;font-size:25px;font-weight: bold;left: 1200px; top: 700px; }
+    #msgflash1 { position: absolute;color: white;font-size:25px;font-weight: bold;left: 1200px; top: 620px; }
+    #msgflash2 { position: absolute;color: black;font-size:25px;font-weight: bold;left: 1200px; top: 750px; }
+    #msgcollision1 { position: absolute;color: white;font-size:25px;font-weight: bold;left: 1500px; top: 570px; }
+    #msgcollision2 { position: absolute;color: black;font-size:25px;font-weight: bold;left: 1500px; top: 700px; }
+    #msgthrow1 { position: absolute;color: white;font-size:25px;font-weight: bold;left: 1500px; top: 620px; }
+    #msgthrow2 { position: absolute;color: black;font-size:25px;font-weight: bold;left: 1500px; top: 750px; }
+
+
+    #msgend
+    {
+        width: 400px;
+        height: 200px;
+        background-color: #DCDCDC;
+        position: absolute;
+        left:520px;
+        top:200px;
+        border-radius: 12px 12px 12px 12px;
+        display:none;
+    }
+    #msgendok
+    {
+        width: 180px;
+        height: 30px;
+        background-color: #696969;
+        position: absolute;
+        left:630px;
+        top:350px;
+        border-radius: 12px 12px 12px 12px;
+        display:none;
+    }
+    #msgspace { position: absolute;color: #DCDCDC;font-size:25px;font-weight: bold;left: 680px; top: 345px; display:none; }
+    #msgendword { position: absolute;color: #4F4F4F;font-size:25px;font-weight: bold;left: 720px; top: 270px; display:none; }
+    #endplayer1
+    {
+        width: 30px;
+        height: 50px;
+        background-color: black;
+        position: absolute;
+        left:670px;
+        top:260px;
+        border-radius:7px;
+        display:none;
+    }
+    #endplayer2
+    {
+        width: 30px;
+        height: 50px;
+        background-color: white;
+        position: absolute;
+        left:670px;
+        top:260px;
+        border-radius:7px;
+        display:none;
+    }
 </style>
 </head>
 <body>
@@ -303,6 +368,23 @@
 <p id="add3">+</p>
 <p id="add4">+</p>
 
+<p id="msgmove1">move</p>
+<p id="msgmove2">move</p>
+<p id="msgattack1">attack</p>
+<p id="msgattack2">attack</p>
+<p id="msgblock1">block</p>
+<p id="msgblock2">block</p>
+<p id="msgsprint1">sprint</p>
+<p id="msgsprint2">sprint</p>
+<p id="msgmark1">mark</p>
+<p id="msgmark2">mark</p>
+<p id="msgflash1">flash</p>
+<p id="msgflash2">flash</p>
+<p id="msgcollision1">collision</p>
+<p id="msgcollision2">collision</p>
+<p id="msgthrow1">throw</p>
+<p id="msgthrow2">throw</p>
+
 <div id="moon"></div>
 <div id="moon_d"></div>
 
@@ -317,6 +399,13 @@
 <div id="displace2"></div>
 <div id="blood2_"></div>
 <div id="blood2"></div>
+
+<div id="msgend"></div>
+<div id="msgendok"></div>
+<p id="msgspace">space</p>
+<p id="msgendword">Win !</p>
+<div id="endplayer1"></div>
+<div id="endplayer2"></div>
 
 <script>
     var pl1 = document.getElementById("player1");
@@ -646,6 +735,7 @@
 
 
 
+
     timer = setInterval(function () {
         if (speed2[0]>0 && t%2==0) { speed2[0] -= 4; }
         if (speed2[0]<0 && t%2==0) { speed2[0] += 4; }
@@ -932,6 +1022,37 @@
         bloodsub2.style.width = 340 * blood2 / 1000 + 'px';
     }, 10)
 
+
+    timer = setInterval(function () {
+         if(blood1<=0)
+         {
+             document.getElementById("msgend").style.display = "block";
+             document.getElementById("msgendok").style.display = "block";
+             document.getElementById("msgspace").style.display = "block";
+             document.getElementById("msgendword").style.display = "block";
+             document.getElementById("endplayer2").style.display = "block";
+             window.onkeydown = function (e) {
+                 if(e.key==0)
+                 {
+                     location.replace(document.referrer);
+                 }
+             }
+         }
+         if(blood2<=0)
+         {
+             document.getElementById("msgend").style.display = "block";
+             document.getElementById("msgendok").style.display = "block";
+             document.getElementById("msgspace").style.display = "block";
+             document.getElementById("msgendword").style.display = "block";
+             document.getElementById("endplayer1").style.display = "block";
+             window.onkeydown = function (e) {
+                 if(e.key==0)
+                 {
+                     location.replace(document.referrer);
+                 }
+             }
+         }
+    }, 10)
 
 
     timer = setInterval(function () {
