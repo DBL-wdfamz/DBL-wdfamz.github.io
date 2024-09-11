@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的自我介绍</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            background-color: #000; /* 白色背景 */
+            color: #fff; /* 黑色文字 */
+            background-color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px 0 rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #000;
+        }
+        #a {
+            display: block;
+            background-color: #333;
+        }
+        #b {
+            display: none;
+            background-color: #333;
+        }
+        a {
+            color: #333;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        #c {
+        background-color: #555; /* Dark grey button */
+        border: 2px solid #777; /* Lighter grey border */
+        color: white;
+        padding: 2px 80px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 10px;
+        transition: background-color 0.3s, color 0.3s;
+        cursor: pointer;
+        border-radius:18px;
+        border-width:4px;
+        font-size:30px;
+        font-weight: bold;
+    }
+    </style>
+    <script>
+        var t=0;
+        timer = setInterval(function () {
+            if(t%2 == 0)
+            {
+                document.getElementById("a").style.display = "none";
+                document.getElementById("b").style.display = "block";
+            }
+            else
+            {
+                document.getElementById("a").style.display = "block";
+                document.getElementById("b").style.display = "none";
+            }
+            t++;
+        }, 400)
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>About me</h1>
+        <h2>BBST</h2>
+        <p id="a">我是个傻逼！</p>
+        <p id="b">我是大学生！</p>
+        <a id="c" href="/">back</a>
+    </div>
+</body>
+</html>
