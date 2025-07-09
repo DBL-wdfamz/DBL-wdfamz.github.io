@@ -1,131 +1,274 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>jsgame</title>
-<style>
+  <meta charset="UTF-8" />
+  <title>公文模板编辑器</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
     body {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        background-color: #333; /* Dark background */
-        color: white; /* White text */
-        margin: 0;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: "Microsoft Yahei", sans-serif;
+      background: #f5f8fa;
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
     }
-    .button {
-        background-color: #555; /* Dark grey button */
-        border: 2px solid #777; /* Lighter grey border */
-        color: white;
-        padding: 20px 100px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 10px;
-        transition: background-color 0.3s, color 0.3s;
-        cursor: pointer;
-        border-radius:18px;
-        border-width:4px;
-        font-size:30px;
-        font-weight: bold;
+    h1 {
+      font-size: 28px;
+      color: #2c3e50;
     }
-    #b {
-        background-color: #555; /* Dark grey button */
-        border: 2px solid #777; /* Lighter grey border */
-        color: white;
-        padding: 20px 100px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 10px;
-        transition: background-color 0.3s, color 0.3s;
-        cursor: pointer;
-        border-radius:18px;
-        border-width:4px;
-        font-size:30px;
-        font-weight: bold;
-        display:none;
+    select, button, input[type="file"] {
+      font-size: 16px;
+      margin: 10px 10px 20px 0;
+      padding: 6px 12px;
+      border-radius: 5px;
     }
-    #c {
-        background-color: #555; /* Dark grey button */
-        border: 2px solid #777; /* Lighter grey border */
-        color: white;
-        padding: 20px 100px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 10px;
-        transition: background-color 0.3s, color 0.3s;
-        cursor: pointer;
-        border-radius:18px;
-        border-width:4px;
-        font-size:30px;
-        font-weight: bold;
-        display:none;
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      cursor: pointer;
     }
-    .button:hover {
-        background-color: #777; /* Lighter grey on hover */
-        color: #ddd; /* Light grey text on hover */
+    button:hover {
+      background-color: #2980b9;
     }
-    .container {
-        text-align: center;
-        display: flex;
-        flex-direction: column; /* Align children vertically */
+    .preview {
+      display: inline-block;
+      width: 60px;
+      height: 60px;
+      margin-right: 10px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      background-size: cover;
+      background-position: center;
+      border-radius: 6px;
     }
-    #name {
-        margin-bottom: 100px;
-        font-size:100px;
+    .preview.active {
+      border-color: #3498db;
     }
-    #hhh
-    {
-        display:none;
+    #editor {
+      min-height: 500px;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 20px;
+      border-radius: 6px;
+      overflow: auto;
+      margin-top: 20px;
     }
-    #a1
-    {
-        display:block;
+    .toolbar {
+      margin: 20px 0;
     }
-    #a2
-    {
-        display:block;
+    .toolbar button {
+      margin-right: 6px;
     }
-    #a3
-    {
-        display:block;
-    }
-    #b
-    {
-        display:none;
-    }
-    #c
-    {
-        display:none;
-    }
-</style>
+  </style>
 </head>
 <body>
-<div class="container">
-    <h1 id="name">jsgame</h1>
-    <button id="a1" class="button" onclick="show()">ترجمة</button>
-    <button id="a2" class="button" onclick="show()">እንደዚህ ጊዜ አለህ?</button>
-    <button id="a3" class="button" onclick="show()">#$^*&^$)@!</button>
-    <a id="b" href="/jsgame.html">开始游戏</a>
-    <a id="c" href="/about.html">about</a>
-    <h1 id="hhh">看不懂就乱按，对吗孩子^v^</h1>
-</div>
-<script>
-    function show() {
-         document.getElementById("a1").style.display = "none";
-         document.getElementById("a2").style.display = "none";
-         document.getElementById("a3").style.display = "none";
-         document.getElementById("b").style.display = "block";
-         document.getElementById("c").style.display = "block";
-         document.getElementById("hhh").style.display = "block";
+  <h1>📄 公文模板编辑器</h1>
+
+  <label for="categorySelect">公文类别：</label>
+  <select id="categorySelect"></select>
+
+  <label for="templateSelect">模板样式：</label>
+  <select id="templateSelect"></select>
+
+  <div id="previewContainer"></div>
+
+  <div class="toolbar">
+    <button onclick="format('bold')">加粗</button>
+    <button onclick="format('italic')">斜体</button>
+    <button onclick="format('underline')">下划线</button>
+    <button onclick="format('insertOrderedList')">有序列表</button>
+    <button onclick="format('insertUnorderedList')">无序列表</button>
+    <button onclick="format('formatBlock', 'h2')">标题</button>
+    <button onclick="insertTable()">插入表格</button>
+    <input type="file" accept="image/*" onchange="insertImage(event)">
+  </div>
+
+  <div id="editor" contenteditable="true"></div>
+
+  <br>
+  <button onclick="downloadTxt()">导出 .txt</button>
+  <button onclick="downloadDocx()">导出 .docx</button>
+  <button onclick="downloadPDF()">导出 .pdf</button>
+
+  <script>
+    const templates = {
+      通知: [
+        {
+          name: "简洁通知",
+          preview: "https://dummyimage.com/60x60/3498db/ffffff&text=N1",
+          content: `<h2>关于开展培训的通知</h2><p>各部门：</p><p>为提升员工素质，计划于8月1日开展集中培训，请准时参加。</p><p>综合办 2025年7月</p>`
+        },
+        {
+          name: "正式通知",
+          preview: "https://dummyimage.com/60x60/2c3e50/ffffff&text=N2",
+          content: `<div style='padding:20px;border:1px solid #2c3e50;background:#f0f3f5'><h2 style='color:#2c3e50;'>XX公司通知</h2><p><strong>主题：</strong>关于加强员工考勤管理的通知</p><p>内容正文……</p></div>`
+        }
+      ],
+      会议纪要: [
+        {
+          name: "常规纪要",
+          preview: "https://dummyimage.com/60x60/95a5a6/ffffff&text=M1",
+          content: `<h2>部门周例会纪要</h2><p><strong>时间：</strong>2025年7月1日</p><p><strong>地点：</strong>会议室A</p><ul><li>项目进展</li><li>下周安排</li></ul>`
+        },
+        {
+          name: "总结纪要",
+          preview: "https://dummyimage.com/60x60/7f8c8d/ffffff&text=M2",
+          content: `<h2>2025上半年总结会议纪要</h2><p>总结半年任务完成情况，重点部署下半年计划。</p>`
+        }
+      ],
+      请示: [
+        {
+          name: "经费请示",
+          preview: "https://dummyimage.com/60x60/f39c12/ffffff&text=Q1",
+          content: `<h2>关于申请市场宣传经费的请示</h2><p>为推进宣传，预计支出3万元，请审批。</p>`
+        },
+        {
+          name: "设备采购请示",
+          preview: "https://dummyimage.com/60x60/d35400/ffffff&text=Q2",
+          content: `<h2>关于采购笔记本电脑的请示</h2><p>为满足新员工办公需求，申请购入5台笔记本电脑。</p>`
+        }
+      ],
+      工作报告: [
+        {
+          name: "季度报告",
+          preview: "https://dummyimage.com/60x60/2ecc71/ffffff&text=R1",
+          content: `<h2>第一季度工作报告</h2><p>本季度完成3个重点项目，开发效率提升20%。</p>`
+        },
+        {
+          name: "月度汇报",
+          preview: "https://dummyimage.com/60x60/27ae60/ffffff&text=R2",
+          content: `<h2>2025年6月月度报告</h2><ul><li>完成新产品内测</li><li>上线2个功能模块</li></ul>`
+        }
+      ],
+      工作总结: [
+        {
+          name: "项目总结",
+          preview: "https://dummyimage.com/60x60/e74c3c/ffffff&text=S1",
+          content: `<h2>CRM系统项目总结</h2><ul><li>完成上线</li><li>客户满意度高</li></ul>`
+        },
+        {
+          name: "年终总结",
+          preview: "https://dummyimage.com/60x60/c0392b/ffffff&text=S2",
+          content: `<h2>2025年度工作总结</h2><p>全年实现营业额增长18%，团队稳定发展。</p>`
+        }
+      ]
+    };
+
+    const categorySelect = document.getElementById("categorySelect");
+    const templateSelect = document.getElementById("templateSelect");
+    const editor = document.getElementById("editor");
+    const previewContainer = document.getElementById("previewContainer");
+
+    function updateCategories() {
+      categorySelect.innerHTML = "";
+      for (const key in templates) {
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = key;
+        categorySelect.appendChild(opt);
+      }
+      updateTemplateOptions();
     }
-</script>
+
+    function updateTemplateOptions() {
+      const category = categorySelect.value;
+      templateSelect.innerHTML = "";
+      previewContainer.innerHTML = "";
+
+      templates[category].forEach((tpl, idx) => {
+        const option = document.createElement("option");
+        option.value = idx;
+        option.textContent = tpl.name;
+        templateSelect.appendChild(option);
+
+        const div = document.createElement("div");
+        div.className = "preview";
+        div.style.backgroundImage = `url('${tpl.preview}')`;
+        div.onclick = () => {
+          templateSelect.value = idx;
+          loadTemplateContent();
+          document.querySelectorAll(".preview").forEach(p => p.classList.remove("active"));
+          div.classList.add("active");
+        };
+        previewContainer.appendChild(div);
+      });
+
+      loadTemplateContent();
+      previewContainer.querySelector(".preview").classList.add("active");
+    }
+
+    function loadTemplateContent() {
+      const cat = categorySelect.value;
+      const idx = templateSelect.value;
+      editor.innerHTML = templates[cat][idx].content;
+    }
+
+    categorySelect.addEventListener("change", updateTemplateOptions);
+    templateSelect.addEventListener("change", loadTemplateContent);
+
+    function format(command, value = null) {
+      document.execCommand(command, false, value);
+    }
+
+    function insertTable() {
+      const rows = 3, cols = 3;
+      let table = '<table border="1" style="border-collapse:collapse;width:100%;margin:10px 0">';
+      for (let i = 0; i < rows; i++) {
+        table += '<tr>';
+        for (let j = 0; j < cols; j++) {
+          table += '<td style="padding:8px">单元格</td>';
+        }
+        table += '</tr>';
+      }
+      table += '</table>';
+      editor.focus();
+      document.execCommand('insertHTML', false, table);
+    }
+
+    function insertImage(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = `<img src="${e.target.result}" style="max-width:100%;margin:10px 0"><br>`;
+          document.execCommand('insertHTML', false, img);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function downloadTxt() {
+      const text = editor.innerText;
+      const blob = new Blob([text], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "文档.txt";
+      link.click();
+    }
+
+    function downloadDocx() {
+      const html = editor.innerHTML;
+      const blob = new Blob([`<!DOCTYPE html><html><head><meta charset='utf-8'></head><body>${html}</body></html>`], { type: "application/msword" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "文档.doc";
+      link.click();
+    }
+
+    async function downloadPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('p', 'pt', 'a4');
+      await doc.html(editor, {
+        callback: function (pdf) {
+          pdf.save("文档.pdf");
+        }, x: 10, y: 10
+      });
+    }
+
+    updateCategories();
+  </script>
 </body>
 </html>
