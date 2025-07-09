@@ -2,273 +2,290 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <title>公文模板编辑器</title>
+  <title>结构化公文编辑器（多模板多样式）</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
-    body {
-      font-family: "Microsoft Yahei", sans-serif;
-      background: #f5f8fa;
-      max-width: 1200px;
-      margin: 40px auto;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    body { font-family: "Microsoft Yahei", sans-serif; background: #eef2f5; padding: 20px; }
+    h1 { text-align: center; color: #2c3e50; }
+    #container { display: flex; max-width: 1200px; margin: 20px auto; gap: 20px; }
+    #formPanel, #previewPanel {
+      flex: 1; background: #fff; padding: 20px;
+      border-radius: 8px; border: 1px solid #ccc;
     }
-    h1 {
-      font-size: 28px;
-      color: #2c3e50;
+    .field-group { margin-bottom: 12px; }
+    .field-group label { display: block; font-weight: bold; margin-bottom: 4px; }
+    .field-group input, .field-group textarea, .field-group select {
+      width: 100%; padding: 6px; font-size: 14px;
     }
-    select, button, input[type="file"] {
-      font-size: 16px;
-      margin: 10px 10px 20px 0;
-      padding: 6px 12px;
-      border-radius: 5px;
+    .button-group button {
+      margin: 5px 5px 10px 0; padding: 6px 12px; cursor: pointer;
     }
-    button {
-      background-color: #3498db;
-      color: white;
-      border: none;
-      cursor: pointer;
+    .button-group button.active {
+      background: #3498db; color: white;
     }
-    button:hover {
-      background-color: #2980b9;
+    .export-btn {
+      margin-right: 10px; padding: 8px 14px;
+      background: #3498db; color: white;
+      border: none; cursor: pointer; border-radius: 4px;
     }
-    .preview {
-      display: inline-block;
-      width: 60px;
-      height: 60px;
-      margin-right: 10px;
-      border: 2px solid transparent;
-      cursor: pointer;
-      background-size: cover;
-      background-position: center;
-      border-radius: 6px;
-    }
-    .preview.active {
-      border-color: #3498db;
-    }
-    #editor {
-      min-height: 500px;
-      background: #fff;
-      border: 1px solid #ccc;
-      padding: 20px;
-      border-radius: 6px;
-      overflow: auto;
-      margin-top: 20px;
-    }
-    .toolbar {
-      margin: 20px 0;
-    }
-    .toolbar button {
-      margin-right: 6px;
-    }
+    .export-btn:hover { background: #2980b9; }
+    .card { border: 1px solid #aaa; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
+    .style-blue .card { background: #f0f4fa; border-color: #2c3e50; color: #2c3e50; }
+    .style-green .card { background: #eaf7ee; border-color: #2c7634; color: #2c7634; }
+    .style-red .card { background: #f9eaea; border-color: #c0392b; color: #c0392b; }
   </style>
 </head>
 <body>
-  <h1>📄 公文模板编辑器</h1>
-
-  <label for="categorySelect">公文类别：</label>
-  <select id="categorySelect"></select>
-
-  <label for="templateSelect">模板样式：</label>
-  <select id="templateSelect"></select>
-
-  <div id="previewContainer"></div>
-
-  <div class="toolbar">
-    <button onclick="format('bold')">加粗</button>
-    <button onclick="format('italic')">斜体</button>
-    <button onclick="format('underline')">下划线</button>
-    <button onclick="format('insertOrderedList')">有序列表</button>
-    <button onclick="format('insertUnorderedList')">无序列表</button>
-    <button onclick="format('formatBlock', 'h2')">标题</button>
-    <button onclick="insertTable()">插入表格</button>
-    <input type="file" accept="image/*" onchange="insertImage(event)">
+  <h1>结构化公文编辑器（多模板多样式）</h1>
+  <div id="container">
+    <div id="formPanel">
+      <div class="field-group">
+        <label>公文类别：</label>
+        <select id="categorySelect"></select>
+      </div>
+      <div class="field-group">
+        <label>配色风格：</label>
+        <div class="button-group" id="styleButtons"></div>
+      </div>
+      <div class="field-group">
+        <label>布局样式：</label>
+        <div class="button-group" id="layoutButtons"></div>
+      </div>
+      <div id="fieldsContainer"></div>
+      <div style="margin-top: 10px">
+        <button class="export-btn" onclick="exportTxt()">导出TXT</button>
+        <button class="export-btn" onclick="exportDoc()">导出DOC</button>
+        <button class="export-btn" onclick="exportPDF()">导出PDF</button>
+      </div>
+    </div>
+    <div id="previewPanel">
+      <div id="previewArea"></div>
+    </div>
   </div>
 
-  <div id="editor" contenteditable="true"></div>
+<script>
+const styles = ['style-blue', 'style-green', 'style-red'];
+let currentStyle = styles[0];
+let currentCategory = '通知';
+let currentLayout = 0;
+const fieldValues = {};
 
-  <br>
-  <button onclick="downloadTxt()">导出 .txt</button>
-  <button onclick="downloadDocx()">导出 .docx</button>
-  <button onclick="downloadPDF()">导出 .pdf</button>
+function $(id) { return document.getElementById(id); }
 
-  <script>
-    const templates = {
-      通知: [
-        {
-          name: "简洁通知",
-          preview: "https://dummyimage.com/60x60/3498db/ffffff&text=N1",
-          content: `<h2>关于开展培训的通知</h2><p>各部门：</p><p>为提升员工素质，计划于8月1日开展集中培训，请准时参加。</p><p>综合办 2025年7月</p>`
-        },
-        {
-          name: "正式通知",
-          preview: "https://dummyimage.com/60x60/2c3e50/ffffff&text=N2",
-          content: `<div style='padding:20px;border:1px solid #2c3e50;background:#f0f3f5'><h2 style='color:#2c3e50;'>XX公司通知</h2><p><strong>主题：</strong>关于加强员工考勤管理的通知</p><p>内容正文……</p></div>`
-        }
-      ],
-      会议纪要: [
-        {
-          name: "常规纪要",
-          preview: "https://dummyimage.com/60x60/95a5a6/ffffff&text=M1",
-          content: `<h2>部门周例会纪要</h2><p><strong>时间：</strong>2025年7月1日</p><p><strong>地点：</strong>会议室A</p><ul><li>项目进展</li><li>下周安排</li></ul>`
-        },
-        {
-          name: "总结纪要",
-          preview: "https://dummyimage.com/60x60/7f8c8d/ffffff&text=M2",
-          content: `<h2>2025上半年总结会议纪要</h2><p>总结半年任务完成情况，重点部署下半年计划。</p>`
-        }
-      ],
-      请示: [
-        {
-          name: "经费请示",
-          preview: "https://dummyimage.com/60x60/f39c12/ffffff&text=Q1",
-          content: `<h2>关于申请市场宣传经费的请示</h2><p>为推进宣传，预计支出3万元，请审批。</p>`
-        },
-        {
-          name: "设备采购请示",
-          preview: "https://dummyimage.com/60x60/d35400/ffffff&text=Q2",
-          content: `<h2>关于采购笔记本电脑的请示</h2><p>为满足新员工办公需求，申请购入5台笔记本电脑。</p>`
-        }
-      ],
-      工作报告: [
-        {
-          name: "季度报告",
-          preview: "https://dummyimage.com/60x60/2ecc71/ffffff&text=R1",
-          content: `<h2>第一季度工作报告</h2><p>本季度完成3个重点项目，开发效率提升20%。</p>`
-        },
-        {
-          name: "月度汇报",
-          preview: "https://dummyimage.com/60x60/27ae60/ffffff&text=R2",
-          content: `<h2>2025年6月月度报告</h2><ul><li>完成新产品内测</li><li>上线2个功能模块</li></ul>`
-        }
-      ],
-      工作总结: [
-        {
-          name: "项目总结",
-          preview: "https://dummyimage.com/60x60/e74c3c/ffffff&text=S1",
-          content: `<h2>CRM系统项目总结</h2><ul><li>完成上线</li><li>客户满意度高</li></ul>`
-        },
-        {
-          name: "年终总结",
-          preview: "https://dummyimage.com/60x60/c0392b/ffffff&text=S2",
-          content: `<h2>2025年度工作总结</h2><p>全年实现营业额增长18%，团队稳定发展。</p>`
-        }
-      ]
+function initEditor() {
+  for (let cat in templates) {
+    $('categorySelect').appendChild(new Option(cat, cat));
+  }
+  $('categorySelect').onchange = () => {
+    currentCategory = $('categorySelect').value;
+    currentLayout = 0;
+    buildForm();
+    updateLayoutButtons();
+    render();
+  };
+
+  styles.forEach(st => {
+    const btn = document.createElement('button');
+    btn.textContent = st.replace('style-', '').toUpperCase();
+    btn.onclick = () => {
+      currentStyle = st;
+      updateStyleButtons();
+      render();
     };
+    $('styleButtons').appendChild(btn);
+  });
 
-    const categorySelect = document.getElementById("categorySelect");
-    const templateSelect = document.getElementById("templateSelect");
-    const editor = document.getElementById("editor");
-    const previewContainer = document.getElementById("previewContainer");
+  updateStyleButtons();
+  buildForm();
+  updateLayoutButtons();
+  render();
+}
 
-    function updateCategories() {
-      categorySelect.innerHTML = "";
-      for (const key in templates) {
-        const opt = document.createElement("option");
-        opt.value = key;
-        opt.textContent = key;
-        categorySelect.appendChild(opt);
+function updateStyleButtons() {
+  Array.from($('styleButtons').children).forEach(btn => {
+    btn.classList.toggle('active', `style-${btn.textContent.toLowerCase()}` === currentStyle);
+  });
+}
+
+function updateLayoutButtons() {
+  const layouts = templates[currentCategory].layouts;
+  const container = $('layoutButtons');
+  container.innerHTML = '';
+  layouts.forEach((lay, idx) => {
+    const btn = document.createElement('button');
+    btn.textContent = lay.name;
+    btn.className = idx === currentLayout ? 'active' : '';
+    btn.onclick = () => {
+      currentLayout = idx;
+      updateLayoutButtons();
+      render();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function buildForm() {
+  $('fieldsContainer').innerHTML = '';
+  const fields = templates[currentCategory].fields;
+  const defaults = templates[currentCategory].defaults;
+
+  fields.forEach(f => {
+    fieldValues[f] = defaults[f] || '';
+    const div = document.createElement('div');
+    div.className = 'field-group';
+    div.innerHTML = `<label>${f}：</label>` +
+      (f === 'body' ? `<textarea id="${f}" rows="4">${fieldValues[f]}</textarea>`
+                    : `<input id="${f}" value="${fieldValues[f]}">`);
+    $('fieldsContainer').appendChild(div);
+    document.getElementById(f).oninput = (e) => {
+      fieldValues[f] = e.target.value;
+      render();
+    };
+  });
+}
+
+function render() {
+  const layout = templates[currentCategory].layouts[currentLayout];
+  const html = layout.render(fieldValues);
+  $('previewArea').className = currentStyle;
+  $('previewArea').innerHTML = html;
+}
+
+function exportTxt() {
+  const text = $('previewArea').innerText;
+  const blob = new Blob([text], { type: "text/plain" });
+  download(blob, "文档.txt");
+}
+function exportDoc() {
+  const html = `<html><meta charset="utf-8"><body>${$('previewArea').innerHTML}</body></html>`;
+  const blob = new Blob([html], { type: "application/msword" });
+  download(blob, "文档.doc");
+}
+async function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'pt', 'a4');
+  const scale = 2;
+  const element = document.getElementById("previewArea");
+
+  const canvas = await html2canvas(element, {
+    scale: scale,
+    useCORS: true
+  });
+
+  const imgData = canvas.toDataURL("image/png");
+  const imgProps = doc.getImageProperties(imgData);
+  const pdfWidth = doc.internal.pageSize.getWidth();
+  const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+  doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+  doc.save("文档.pdf");
+}
+function download(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+const templates = {
+  通知: {
+    fields: ['title','unit','date','body'],
+    defaults: {
+      title: '关于开展培训的通知',
+      unit: '综合办',
+      date: '2025年7月',
+      body: '为提升员工素质，计划于8月1日开展集中培训，请准时参加。'
+    },
+    layouts: [
+      {
+        name: '简洁通知',
+        render: v => `<div class="card"><h2>${v.title}</h2><p><strong>单位：</strong>${v.unit}</p><p><strong>时间：</strong>${v.date}</p><hr><p>${v.body}</p></div>`
+      },
+      {
+        name: '居中横栏通知',
+        render: v => `<div class="card" style="text-align:center"><h2>${v.title}</h2><p>${v.unit} ｜ ${v.date}</p><div style="margin-top:20px;text-align:left">${v.body}</div></div>`
       }
-      updateTemplateOptions();
-    }
-
-    function updateTemplateOptions() {
-      const category = categorySelect.value;
-      templateSelect.innerHTML = "";
-      previewContainer.innerHTML = "";
-
-      templates[category].forEach((tpl, idx) => {
-        const option = document.createElement("option");
-        option.value = idx;
-        option.textContent = tpl.name;
-        templateSelect.appendChild(option);
-
-        const div = document.createElement("div");
-        div.className = "preview";
-        div.style.backgroundImage = `url('${tpl.preview}')`;
-        div.onclick = () => {
-          templateSelect.value = idx;
-          loadTemplateContent();
-          document.querySelectorAll(".preview").forEach(p => p.classList.remove("active"));
-          div.classList.add("active");
-        };
-        previewContainer.appendChild(div);
-      });
-
-      loadTemplateContent();
-      previewContainer.querySelector(".preview").classList.add("active");
-    }
-
-    function loadTemplateContent() {
-      const cat = categorySelect.value;
-      const idx = templateSelect.value;
-      editor.innerHTML = templates[cat][idx].content;
-    }
-
-    categorySelect.addEventListener("change", updateTemplateOptions);
-    templateSelect.addEventListener("change", loadTemplateContent);
-
-    function format(command, value = null) {
-      document.execCommand(command, false, value);
-    }
-
-    function insertTable() {
-      const rows = 3, cols = 3;
-      let table = '<table border="1" style="border-collapse:collapse;width:100%;margin:10px 0">';
-      for (let i = 0; i < rows; i++) {
-        table += '<tr>';
-        for (let j = 0; j < cols; j++) {
-          table += '<td style="padding:8px">单元格</td>';
-        }
-        table += '</tr>';
+    ]
+  },
+  会议纪要: {
+    fields: ['title','time','location','body'],
+    defaults: {
+      title: '部门例会纪要',
+      time: '2025-07-01',
+      location: '会议室A',
+      body: '讨论了项目进展与下周计划。'
+    },
+    layouts: [
+      {
+        name: '卡片纪要',
+        render: v => `<div class="card"><h2>${v.title}</h2><p><strong>时间：</strong>${v.time}</p><p><strong>地点：</strong>${v.location}</p><hr><p>${v.body}</p></div>`
+      },
+      {
+        name: '横栏纪要',
+        render: v => `<div class="card"><div style="display:flex;justify-content:space-between"><span>${v.time}</span><span>${v.location}</span></div><h2>${v.title}</h2><p>${v.body}</p></div>`
       }
-      table += '</table>';
-      editor.focus();
-      document.execCommand('insertHTML', false, table);
-    }
-
-    function insertImage(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const img = `<img src="${e.target.result}" style="max-width:100%;margin:10px 0"><br>`;
-          document.execCommand('insertHTML', false, img);
-        };
-        reader.readAsDataURL(file);
+    ]
+  },
+  请示: {
+    fields: ['title','recipient','date','body'],
+    defaults: {
+      title: '关于申请市场宣传经费的请示',
+      recipient: '领导',
+      date: '2025年7月',
+      body: '为推进宣传，预计支出3万元，请审批。'
+    },
+    layouts: [
+      {
+        name: '请示正文',
+        render: v => `<div class="card"><h2>${v.title}</h2><p>致：${v.recipient}</p><p><strong>日期：</strong>${v.date}</p><hr><p>${v.body}</p></div>`
+      },
+      {
+        name: '标题分栏',
+        render: v => `<div class="card"><div style="display:flex;justify-content:space-between"><strong>${v.recipient}</strong><span>${v.date}</span></div><h2>${v.title}</h2><p>${v.body}</p></div>`
       }
-    }
+    ]
+  },
+  工作报告: {
+    fields: ['title','department','period','body'],
+    defaults: {
+      title: '第一季度工作报告',
+      department: '研发部',
+      period: '2025-Q1',
+      body: '本季度完成3个重点项目，开发效率提升20%。'
+    },
+    layouts: [
+      {
+        name: '模块式报告',
+        render: v => `<div class="card"><h2>${v.title}</h2><p><strong>部门：</strong>${v.department}</p><p><strong>季度：</strong>${v.period}</p><hr><p>${v.body}</p></div>`
+      },
+      {
+        name: '标题加标签',
+        render: v => `<div class="card"><h2>${v.title}【${v.period}】</h2><p><em>部门：${v.department}</em></p><p>${v.body}</p></div>`
+      }
+    ]
+  },
+  工作总结: {
+    fields: ['title','year','body'],
+    defaults: {
+      title: '2025年度工作总结',
+      year: '2025',
+      body: '全年实现营业额增长18%，团队稳定发展。'
+    },
+    layouts: [
+      {
+        name: '普通总结',
+        render: v => `<div class="card"><h2>${v.title}</h2><p><strong>年度：</strong>${v.year}</p><hr><p>${v.body}</p></div>`
+      },
+      {
+        name: '标签式总结',
+        render: v => `<div class="card"><h2>${v.title}</h2><p style="color:#888">总结时间：${v.year}</p><p>${v.body}</p></div>`
+      }
+    ]
+  }
+};
 
-    function downloadTxt() {
-      const text = editor.innerText;
-      const blob = new Blob([text], { type: "text/plain" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "文档.txt";
-      link.click();
-    }
-
-    function downloadDocx() {
-      const html = editor.innerHTML;
-      const blob = new Blob([`<!DOCTYPE html><html><head><meta charset='utf-8'></head><body>${html}</body></html>`], { type: "application/msword" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "文档.doc";
-      link.click();
-    }
-
-    async function downloadPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF('p', 'pt', 'a4');
-      await doc.html(editor, {
-        callback: function (pdf) {
-          pdf.save("文档.pdf");
-        }, x: 10, y: 10
-      });
-    }
-
-    updateCategories();
-  </script>
+document.addEventListener("DOMContentLoaded", initEditor);
+</script>
 </body>
 </html>
